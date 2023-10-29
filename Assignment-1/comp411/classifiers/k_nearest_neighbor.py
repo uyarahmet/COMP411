@@ -84,7 +84,8 @@ class KNearestNeighbor(object):
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-                pass
+                # d(i,j) = euclidian distance between Xi and Yi
+                dists[i, j] = np.sqrt(np.sum((X[i] - self.X_train[j])**2))
                 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -108,7 +109,9 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            pass
+            squared_diff = (X[i] - self.X_train) ** 2 # computing L2 distance for Xi on every training data
+            sum_squared_diff = np.sum(squared_diff, axis=1) # np.sum() computes sum of matrixes
+            dists[i] = np.sqrt(sum_squared_diff) # Filling in the distance matrix 
             
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -138,8 +141,17 @@ class KNearestNeighbor(object):
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        test_sq = np.sum(X**2, axis=1, keepdims=True) # a^2
+        train_sq = np.sum(self.X_train**2, axis=1) # b^2
+
+        # we have a^2 and b^2, now we need 2*a*b. We can find this intermediate matrix by performing dot product on b's transpose
         
+        intermediate = np.dot(X, self.X_train.T)
+
+        # Perform -2*a*b and compute distance
+
+        dists = np.sqrt(test_sq + train_sq - 2 * intermediate)
+
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
 
@@ -171,7 +183,16 @@ class KNearestNeighbor(object):
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
                 
-                pass
+                # we will compute 1 - ab / sq(a^2) + sq(b^2)
+
+                dot_product = np.dot(X[i], self.X_train[j]) # ab
+                sq2_test = np.sqrt(np.sum(X[i]**2)) # abs(A)
+                sq2_train = np.sqrt(np.sum(self.X_train[j]**2)) # abs(B)
+
+                cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+
+                dists[i, j] = cosine_distance
+
                 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -195,7 +216,14 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            pass
+            dot_product = np.dot(X[i], self.X_train.T) 
+
+            sq2_test = np.sqrt(np.sum(X[i]**2))
+            sq2_train = np.sqrt(np.sum(self.X_train**2, axis=1))
+
+            cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+
+            dists[i] = cosine_distance
             
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -226,7 +254,15 @@ class KNearestNeighbor(object):
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        dot_product = np.dot(X, self.X_train.T)
+
+        sq2_test = np.sqrt(np.sum(X**2, axis=1))
+        sq2_train = np.sqrt(np.sum(self.X_train**2, axis=1))
+
+        cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+
+        dists = cosine_distance
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -259,7 +295,13 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            sorted_indices = np.argsort(dists[i]) # sort indices in dists(i)
+            k_nearest_indices = sorted_indices[:k] # first k indices
+
+            for j in k_nearest_indices: # add k nearest neigbors to closest y
+                closest_y.append(self.y_train[j])
+
+
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -271,7 +313,11 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            label_counts = np.bincount(closest_y) # counts how many times each unique label appears
+
+            most_common_label = np.argmax(label_counts) # finds most common argument
+
+            y_pred[i] = most_common_label
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
