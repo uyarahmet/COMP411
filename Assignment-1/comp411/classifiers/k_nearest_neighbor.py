@@ -189,7 +189,7 @@ class KNearestNeighbor(object):
                 sq2_test = np.sqrt(np.sum(X[i]**2)) # abs(A)
                 sq2_train = np.sqrt(np.sum(self.X_train[j]**2)) # abs(B)
 
-                cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+                cosine_distance = 1 - (dot_product / (sq2_test * sq2_train))
 
                 dists[i, j] = cosine_distance
 
@@ -216,12 +216,13 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             
-            dot_product = np.dot(X[i], self.X_train.T) 
+            #dot_product = np.dot(X[i], self.X_train.T)
+            dot_product = X[i].dot(self.X_train.T) 
 
             sq2_test = np.sqrt(np.sum(X[i]**2))
             sq2_train = np.sqrt(np.sum(self.X_train**2, axis=1))
 
-            cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+            cosine_distance = 1 - dot_product / (sq2_test * sq2_train)
 
             dists[i] = cosine_distance
             
@@ -256,10 +257,12 @@ class KNearestNeighbor(object):
         
         dot_product = np.dot(X, self.X_train.T)
 
-        sq2_test = np.sqrt(np.sum(X**2, axis=1))
+        sq2_test = np.sqrt(np.sum(X**2, axis=1, keepdims=True))
         sq2_train = np.sqrt(np.sum(self.X_train**2, axis=1))
 
-        cosine_distance = 1 - (dot_product / (sq2_test + sq2_train))
+        # np.reshape(sq2_train, 1, -1) # check output
+
+        cosine_distance = 1 - (dot_product / (sq2_test.dot(sq2_train.reshape(1, -1)))) # ensuring same shape with sq2_test
 
         dists = cosine_distance
 
