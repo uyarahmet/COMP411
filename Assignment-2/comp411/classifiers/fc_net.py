@@ -31,7 +31,7 @@ class FullyConnectedNet(object):
         normalization=None,
         reg=0.0,
         weight_scale=1e-2,
-        dtype=np.float32,
+        dtype=np.float32, 
         seed=None,
     ):
         """Initialize a new FullyConnectedNet.
@@ -74,7 +74,15 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # use num_layers later
+        self.params['W1'] = np.random.normal(scale=weight_scale, size=(input_dim, hidden_dims[0]))
+        self.params['b1'] = np.zeros(hidden_dims[0])
+
+        self.params['W2'] = np.random.normal(scale=weight_scale, size=(hidden_dims[0], hidden_dims[1]))
+        self.params['b2'] = np.zeros(hidden_dims[1])
+
+        self.params['W3'] = np.random.normal(scale=weight_scale, size=(hidden_dims[1], num_classes))
+        self.params['b3'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -124,7 +132,7 @@ class FullyConnectedNet(object):
             names to gradients of the loss with respect to those parameters.
         """
         X = X.astype(self.dtype)
-        mode = "test" if y is None else "train"
+        mode = "test" if y is None else "train" 
 
         # Set train/test mode for batchnorm params and dropout param since they
         # behave differently during training and testing.
@@ -147,8 +155,10 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        X_flatten = X.reshape(X.shape[0], -1)
+        out, cache1 = affine_relu_forward(X_flatten, self.params["W1"], self.params["b1"])
+        out, cache2 = affine_relu_forward(out, self.params["W2"], self.params["b2"])
+        scores, cache3 = affine_forward(out, self.params["W3"], self.params["b3"])
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -175,7 +185,20 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dx = softmax_loss(scores, y)
+        dx, grads["W3"], grads["b3"] = affine_backward(dx, cache3)
+        dx, grads["W2"], grads["b2"] = affine_relu_backward(dx, cache2)
+        dx, grads["W1"], grads["b1"] = affine_relu_backward(dx, cache1)
+
+        reg_loss = 0.5 * self.reg * (np.sum(self.params["W1"] * self.params["W1"]) +
+                            np.sum(self.params["W2"] * self.params["W2"]) +
+                            np.sum(self.params["W3"] * self.params["W3"]))
+
+        loss += reg_loss
+
+        grads["W1"] += self.reg * self.params["W1"]
+        grads["W2"] += self.reg * self.params["W2"]
+        grads["W3"] += self.reg * self.params["W3"]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
