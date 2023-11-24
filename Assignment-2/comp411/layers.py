@@ -201,7 +201,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     eps = bn_param.get("eps", 1e-5)
     momentum = bn_param.get("momentum", 0.9)
 
-    N, D = x.shape
+    N, D = x.shape # 200, 3
     running_mean = bn_param.get("running_mean", np.zeros(D, dtype=x.dtype))
     running_var = bn_param.get("running_var", np.zeros(D, dtype=x.dtype))
 
@@ -230,7 +230,17 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        sample_mean = np.mean(x, axis=0) # normalization over the sample, batch_size=3 -> 3 normalization scalar
+        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+
+        sample_var = np.var(x, axis=0)
+        running_var = momentum * running_var + (1 - momentum) * sample_var
+
+        x_i = (x - running_mean) / (np.sqrt(running_var**2 + eps))
+
+        out = gamma * x_i + beta 
+
+        cache = (x, x_i, gamma, beta)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -245,7 +255,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        sample_mean = np.mean(x, axis=0) # normalization over the sample, batch_size=3 -> 3 normalization scalar
+        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+
+        sample_var = np.var(x, axis=0)
+        running_var = momentum * running_var + (1 - momentum) * sample_var
+
+        x_i = (x - running_mean) / (np.sqrt(running_var**2 + eps))
+
+        out = gamma * x_i + beta 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -286,7 +304,11 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, x_i, gamma, beta = cache
+
+    # calculate dx
+    dgamma = dout.dot(x_i.T)
+    dbeta = np.sum(dout, axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
