@@ -342,8 +342,8 @@ def batchnorm_backward_alt(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -476,7 +476,29 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Set variables 
+    N, C, H, W = x.shape
+    F, CC, HH, WW = w.shape
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+
+    # Calculate output dimension
+    H_out = (H + 2 * pad - HH) // stride + 1
+    W_out = (H + 2* pad - WW)  // stride + 1
+
+    out = np.zeros((N, F, H_out, W_out)) # creating initialized output 
+
+    x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant', constant_values=0)
+
+    # convolution 
+    for n in range(N):
+        for f in range(F):
+            for i in range(0, H_out * stride, stride):
+                for j in range(0, W_out * stride, stride):
+                    receptive_field = x_padded[n, :, i:i + HH, j:j + WW] # local receptive field
+                    out[n, f, i // stride, j // stride] = np.sum(receptive_field * w[f]) + b[f] # convolution operation and summing up with bias
+
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -504,7 +526,34 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # initialize variables
+    x, w, b, conv_param = cache
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    _, _, H_out, W_out = dout.shape
+
+    # initialize gradients
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    # padding the input x and dx
+    x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant', constant_values=0)
+    dx_padded = np.pad(dx, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant', constant_values=0)
+
+    for n in range(N):
+        for f in range(F):
+            for i in range(0, H_out * stride, stride):
+                for j in range(0, W_out * stride, stride):
+                    receptive_field = x_padded[n, :, i:i + HH, j:j + WW]
+                    # compute gradients
+                    dw[f] += receptive_field * dout[n, f, i // stride, j // stride]
+                    db[f] += dout[n, f, i // stride, j // stride]
+                    dx_padded[n, :, i:i + HH, j:j + WW] += w[f] * dout[n, f, i // stride, j // stride]
+
+    dx = dx_padded[:, :, pad:-pad, pad:-pad] # remove padding from dx (error was 1.0 before padding)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -539,7 +588,36 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # initialize variables
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # Calculate output dimensions
+    H_out = (H - pool_height) + 1 // stride
+    W_out = (W - pool_width) + 1 // stride
+
+    out = np.zeros((N, C, H_out, W_out)) # initialize output
+
+
+    for i in range(0, H_out * stride, stride):
+        for j in range(0, W_out * stride, stride):
+            receptive_field = x[:, :, i:i + pool_height, j:j+pool_width]
+            # apply max pooling wrt spatial dimensions
+            # pool_result = np.max(receptive_field, axis=(2, 3), keepdims=True)
+            
+            if receptive_field.size > 0:
+                # Apply max pooling along the spatial dimensions
+                pool_result = np.max(receptive_field, axis=(2, 3), keepdims=True)
+                # Store the result in the output
+                out[:, :, i // stride, j // stride] = pool_result[:, :, 0, 0]
+
+            
+    # output format mismatch
+    out = out[:, :, :min(H_out, 4), :min(W_out, 4)]
+
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -565,7 +643,22 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, pool_param, mask = cache
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    _, _, H_out, W_out = dout.shape
+
+    dx = np.zeros_like(x)
+
+    for i in range(0, H_out * stride, stride):
+        for j in range(0, W_out * stride, stride):
+            
+            receptive_field = x[:, :, i:i + pool_height, j:j + pool_width]
+            mask_field = mask[:, :, i:i + pool_height, j:j + pool_width]
+            # Distribute the upstream derivatives to positions of the max values
+            dx[:, :, i:i + pool_height, j:j + pool_width] += dout[:, :, i // stride, j // stride][:, :, None, None] * mask_field
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -599,7 +692,28 @@ def avg_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # Calculate output dimensions
+    H_out = 1 + (H - pool_height) // stride
+    W_out = 1 + (W - pool_width) // stride
+
+    # initialize the output
+    out = np.zeros((N, C, H_out, W_out))
+
+    for i in range(0, H_out * stride, stride):
+        for j in range(0, W_out * stride, stride):
+            
+            receptive_field = x[:, :, i:i + pool_height, j:j + pool_width]
+
+            if receptive_field.size > 0:
+                # applying average pooling along the spatial dimensions
+                pool_result = np.mean(receptive_field, axis=(2, 3), keepdims=True)
+                # storing the result in the output
+                out[:, :, i // stride, j // stride] = pool_result[:, :, 0, 0]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -625,7 +739,28 @@ def avg_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass            
+    x, pool_param = cache
+    N, C, H, W = x.shape
+
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride'] 
+    
+    # calculate output dimensions
+    H_out = 1 + (H - pool_height) // stride
+    W_out = 1 + (W - pool_width) // stride
+
+    dx = np.zeros_like(x)
+
+    for i in range(0, H_out * stride, stride):
+        for j in range(0, W_out * stride, stride):
+            receptive_field = x[:, :, i:i + pool_height, j:j + pool_width]
+
+            if receptive_field.size > 0:
+                # Calculate the gradient with respect to the receptive field
+                dx_receptive = dout[:, :, i // stride, j // stride] / (pool_height * pool_width)
+                # Distribute the gradient to the corresponding positions in dx
+                dx[:, :, i:i + pool_height, j:j + pool_width] += dx_receptive[:, :, None, None]            
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -666,8 +801,16 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # reshape the input to (N*H*W, C)
+    x_reshaped = x.transpose(0, 2, 3, 1).reshape(-1, x.shape[1])
 
+    # call batch normalization forward pass
+    out_reshaped, cache = batchnorm_forward(x_reshaped, gamma, beta, bn_param)
+
+    # reshape the output back to (N, H, W, C)
+    out = out_reshaped.reshape(x.shape[0], x.shape[2], x.shape[3], x.shape[1]).transpose(0, 3, 1, 2)
+
+    cache = (x, gamma, beta, bn_param)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -699,7 +842,20 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    
+    x, gamma, beta, bn_param = cache
+    N, C, H, W = x.shape
+
+    # Reshape x, dout to use the vanilla batchnorm backward
+    x_reshaped = x.transpose(0, 2, 3, 1).reshape((-1, C))
+    dout_reshaped = dout.transpose(0, 2, 3, 1).reshape((-1, C))
+
+    # Compute gradients using the vanilla batchnorm backward
+    dx_reshaped, dgamma, dbeta = batchnorm_backward_alt(dout_reshaped, (x_reshaped, gamma, beta, bn_param))
+
+    # Reshape gradients back to the spatial shape
+    dx = dx_reshaped.reshape((N, H, W, C)).transpose(0, 3, 1, 2)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

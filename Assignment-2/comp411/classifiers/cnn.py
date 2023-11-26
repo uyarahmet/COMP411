@@ -63,7 +63,20 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        C, H, W = input_dim
+
+        # Convolutional layer
+        self.params["W1"] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+        self.params["b1"] = np.zeros(num_filters)
+
+        # FC layer 1
+        self.params["W2"] = weight_scale * np.random.randn(num_filters * H // 2 * W // 2, hidden_dim)
+        self.params["b2"] = np.zeros(hidden_dim)
+
+        # FC layer 2
+        self.params["W3"] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params["b3"] = np.zeros(num_classes)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -102,7 +115,15 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # convolutional layer
+        out_conv, cache_conv = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+
+        # fully connected layer 1 
+        out_affine1, cache_affine1 = affine_relu_forward(out_conv, W2, b2)
+
+        # fully connected layer 2
+        scores, cache_affine2 = affine_forward(out_affine1, W3, b3)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -124,8 +145,30 @@ class ThreeLayerConvNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        # finding softmax loss
+        data_loss, dscores = softmax_loss(scores, y)
 
-        pass
+        # adding L2 regularization to the loss
+        reg_loss = 0.5 * self.reg * (np.sum(W1 ** 2) + np.sum(W2 ** 2) + np.sum(W3 ** 2))
+        loss = data_loss + reg_loss
+
+        # Backpropagation
+
+        # FC layer 2
+        dout_affine1, dW3, db3 = affine_backward(dscores, cache_affine2)
+        grads["W3"] = dW3 + self.reg * W3
+        grads["b3"] = db3
+
+        # FC Layer 1
+        dout_conv, dW2, db2 = affine_relu_backward(dout_affine1, cache_affine1)
+        grads["W2"] = dW2 + self.reg * W2
+        grads["b2"] = db2
+
+        # Convolutional layer
+        dx, dW1, db1 = conv_relu_pool_backward(dout_conv, cache_conv)
+        grads["W1"] = dW1 + self.reg * W1
+        grads["b1"] = db1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
