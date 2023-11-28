@@ -601,14 +601,16 @@ def max_pool_forward_naive(x, pool_param):
 
     # initialize variables
     N, C, H, W = x.shape
+    print(x.shape)
     pool_height = pool_param['pool_height']
     pool_width = pool_param['pool_width']
     stride = pool_param['stride']
+    print(pool_param)
 
     # Calculate output dimensions
-    H_out = (H - pool_height) + 1 // stride
-    W_out = (W - pool_width) + 1 // stride
-
+    H_out = 1 + (H - pool_height) // stride
+    W_out = 1 + (W - pool_width) // stride
+    print(H_out)
     out = np.zeros((N, C, H_out, W_out)) # initialize output
 
 
@@ -623,12 +625,6 @@ def max_pool_forward_naive(x, pool_param):
                 pool_result = np.max(receptive_field, axis=(2, 3), keepdims=True)
                 # Store the result in the output
                 out[:, :, i // stride, j // stride] = pool_result[:, :, 0, 0]
-
-            
-    # output format mismatch
-    out = out[:, :, :min(H_out, 4), :min(W_out, 4)]
-
-
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
