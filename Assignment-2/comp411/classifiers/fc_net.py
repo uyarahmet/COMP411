@@ -79,7 +79,7 @@ class FullyConnectedNet(object):
 
             # if last layer , no batchnorm
             if i+1 == self.num_layers:
-                self.params[f'W{str(i+1)}'] = np.random.normal(scale=weight_scale, size=(hidden_dims[1], num_classes))
+                self.params[f'W{str(i+1)}'] = np.random.normal(scale=weight_scale, size=(hidden_dims[-1], num_classes))
                 self.params[f'b{str(i+1)}'] = np.zeros(num_classes)
 
             else:
