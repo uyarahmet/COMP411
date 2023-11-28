@@ -654,7 +654,7 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    x, pool_param, mask = cache
+    x, pool_param = cache
     N, C, H, W = x.shape
     pool_height = pool_param['pool_height']
     pool_width = pool_param['pool_width']
@@ -666,10 +666,8 @@ def max_pool_backward_naive(dout, cache):
     for i in range(0, H_out * stride, stride):
         for j in range(0, W_out * stride, stride):
             
-            receptive_field = x[:, :, i:i + pool_height, j:j + pool_width]
-            mask_field = mask[:, :, i:i + pool_height, j:j + pool_width]
             # Distribute the upstream derivatives to positions of the max values
-            dx[:, :, i:i + pool_height, j:j + pool_width] += dout[:, :, i // stride, j // stride][:, :, None, None] * mask_field
+            dx[:, :, i:i + pool_height, j:j + pool_width] += dout[:, :, i // stride, j // stride][:, :, None, None] * (x[:, :, i:i + pool_height, j:j + pool_width] == np.max(x[:, :, i:i + pool_height, j:j + pool_width], axis=(2, 3), keepdims=True))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
