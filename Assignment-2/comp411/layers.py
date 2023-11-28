@@ -238,7 +238,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         x_i = (x - mean) / std   
         out = gamma * x_i + beta 
 
-        cache = x_i, shape, axis, x, mean, var, std, gamma 
+        cache = x, x_i, shape, axis, x, mean, var, std, gamma, beta
 
         if axis == 0:                                                  
             running_mean = momentum * running_mean + (1 - momentum) * mean 
@@ -299,7 +299,7 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    x_i, shape, axis, x, mean, var, std, gamma = cache         
+    x, x_i, shape, axis, x, mean, var, std, gamma, beta = cache         
 
     dbeta = dout.reshape(shape, order='F').sum(axis)          
     dgamma = (dout * x_i).reshape(shape, order='F').sum(axis)
@@ -347,7 +347,7 @@ def batchnorm_backward_alt(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    x_i, shape, axis, x, mean, var, std, gamma = cache  
+    x, x_i, shape, axis, x, mean, var, std, gamma, beta = cache  
     
     dbeta = np.sum(dout.reshape(shape, order='F'), axis=axis)      
     dgamma = np.sum((dout * x_i).reshape(shape, order='F'), axis=axis)
@@ -856,10 +856,10 @@ def spatial_batchnorm_backward(dout, cache):
     dout_reshaped = dout.transpose(0, 2, 3, 1).reshape((-1, C))
 
     # Compute gradients using the vanilla batchnorm backward
-    dx_reshaped, dgamma, dbeta = batchnorm_backward_alt(dout_reshaped, (x_reshaped, gamma, beta, bn_param))
+    dx, dgamma, dbeta = batchnorm_backward_alt(dout_reshaped, (x_reshaped, gamma, beta, bn_param))
 
     # Reshape gradients back to the spatial shape
-    dx = dx_reshaped.reshape((N, H, W, C)).transpose(0, 3, 1, 2)
+    dx = dx.reshape((N, H, W, C)).transpose(0, 3, 1, 2)
 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
