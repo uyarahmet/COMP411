@@ -806,16 +806,13 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    # reshape the input to (N*H*W, C)
-    x_reshaped = x.transpose(0, 2, 3, 1).reshape(-1, x.shape[1])
+    N, C, H, W = x.shape
+    x_transformed = x.transpose(0, 2, 3, 1).reshape(-1, C)
 
-    # call batch normalization forward pass
-    out_reshaped, cache = batchnorm_forward(x_reshaped, gamma, beta, bn_param)
+    out, cache = batchnorm_forward(x_transformed, gamma, beta, bn_param)
 
-    # reshape the output back to (N, H, W, C)
-    out = out_reshaped.reshape(x.shape[0], x.shape[2], x.shape[3], x.shape[1]).transpose(0, 3, 1, 2)
+    out = out.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
-    cache = (x, gamma, beta, bn_param)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -848,18 +845,12 @@ def spatial_batchnorm_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     
-    x, gamma, beta, bn_param = cache
-    N, C, H, W = x.shape
-
-    # Reshape x, dout to use the vanilla batchnorm backward
-    x_reshaped = x.transpose(0, 2, 3, 1).reshape((-1, C))
-    dout_reshaped = dout.transpose(0, 2, 3, 1).reshape((-1, C))
-
-    # Compute gradients using the vanilla batchnorm backward
-    dx, dgamma, dbeta = batchnorm_backward_alt(dout_reshaped, (x_reshaped, gamma, beta, bn_param))
-
-    # Reshape gradients back to the spatial shape
-    dx = dx.reshape((N, H, W, C)).transpose(0, 3, 1, 2)
+    N, C, H, W = dout.shape                         
+    dout_reshaped = dout.transpose(0, 2, 3, 1).reshape(N*H*W, C)
+    
+    dx_reshaped, dgamma, dbeta = batchnorm_backward(dout_reshaped, cache)
+    
+    dx = dx_reshaped.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
