@@ -1,5 +1,4 @@
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torchvision
@@ -30,7 +29,10 @@ def sample_noise(batch_size, dim, seed=None):
 
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # uniform random noise in the range (0, 1)
+    noise = torch.rand(batch_size, dim)
+    # Scale and shift so the range becomes (-1, 1)
+    noise = 2 * noise - 1
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -51,7 +53,15 @@ def discriminator(seed=None):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Values are explicitly given in the question 
+    model = nn.Sequential(
+        Flatten(),
+        nn.Linear(784, 256, bias=True),
+        nn.LeakyReLU(0.01),
+        nn.Linear(256, 256, bias=True),
+        nn.LeakyReLU(0.01),
+        nn.Linear(256, 1, bias=True)
+    )
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -76,7 +86,15 @@ def generator(noise_dim=NOISE_DIM, seed=None):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Same here, the values are explicitly given in the notebook
+    model = nn.Sequential(
+        nn.Linear(noise_dim, 1024),
+        nn.ReLU(),
+        nn.Linear(1024, 1024),
+        nn.ReLU(),
+        nn.Linear(1024, 784),
+        nn.Tanh()
+    )
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
