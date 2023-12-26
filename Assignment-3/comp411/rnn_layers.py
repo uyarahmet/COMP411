@@ -75,7 +75,10 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
-    pass
+    next_h = np.tanh(np.dot(prev_h, Wh) + np.dot(x, Wx) + b)
+
+    # storing for backward pass 
+    cache = (x, prev_h, Wx, Wh, b, next_h)
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -108,7 +111,16 @@ def rnn_step_backward(dnext_h, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # using cache to retrieve data 
+    x, prev_h, Wx, Wh, b, next_h = cache
+
+    # backpropagation steps
+    dtanh = (1 - next_h**2) * dnext_h
+    dx = dtanh.dot(Wx.T)
+    dprev_h = dtanh.dot(Wh.T)
+    dWx = x.T.dot(dtanh)
+    dWh = prev_h.T.dot(dtanh)
+    db = np.sum(dtanh, axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -143,7 +155,24 @@ def rnn_forward(x, h0, Wx, Wh, b):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, T, D = x.shape
+    _, H = h0.shape
+
+    h = np.zeros((N, T, H))
+
+    # initialize the cache
+    cache = []
+
+    # Initialize the hidden state
+    h_t = h0
+
+    for t in range(T):
+        # forward pass
+        h_t, cache_t = rnn_step_forward(x[:, t, :], h_t, Wx, Wh, b)
+
+        # Store the hidden state and cache for current timestamp 
+        h[:, t, :] = h_t
+        cache.append(cache_t)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -179,7 +208,33 @@ def rnn_backward(dh, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # extract shapes and cache 
+    N, T, H = dh.shape
+    x, _, _, _, _, _ = cache[0]
+    _, D = x.shape
+
+    # Initialize gradients
+    dx = np.zeros((N, T, D))
+    dh0 = np.zeros((N, H))
+    dWx = np.zeros((D, H))
+    dWh = np.zeros((H, H))
+    db = np.zeros((H,))
+
+    # Initialize upstream gradient with respect to previous hidden state
+    dprev_h_t = np.zeros((N, H))
+
+    for t in reversed(range(T)):
+        # Compute gradients for current timestep
+        dx_t, dprev_h_t, dWx_t, dWh_t, db_t = rnn_step_backward(dh[:, t, :] + dprev_h_t, cache[t])
+
+        # add current gradients to overall gradients 
+        dx[:, t, :] = dx_t
+        dWx += dWx_t
+        dWh += dWh_t
+        db += db_t
+
+    # initial hidden state gradient is final dprev_h_t
+    dh0 = dprev_h_t
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -211,7 +266,10 @@ def word_embedding_forward(x, W):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # NumPy utility! 
+    out = W[x]
+
+    cache = (x, W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -244,7 +302,14 @@ def word_embedding_backward(dout, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # unpack weights and x from cache 
+    x, W = cache
+
+    # initialize gradients 
+    dW = np.zeros_like(W)
+
+    # add to gradients for each word
+    np.add.at(dW, x, dout)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################

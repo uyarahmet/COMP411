@@ -148,7 +148,30 @@ class CaptioningRNN(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        # Steps for forward pass
+        h0, h0_cache = affine_forward(features, W_proj, b_proj)
+        word_vectors, word_vectors_cache = word_embedding_forward(captions_in, W_embed)
+        rnn_hidden_states, rnn_cache = rnn_forward(word_vectors, h0, Wx, Wh, b)
+        scores, scores_cache = temporal_affine_forward(rnn_hidden_states, W_vocab, b_vocab)
+
+        # Computing loss and gradients 
+        loss, dscores = temporal_softmax_loss(scores, captions_out, mask, verbose=False)
+        drnn_hidden_states, dW_vocab, db_vocab = temporal_affine_backward(dscores, scores_cache)
+        dword_vectors, dh0, dWx, dWh, db = rnn_backward(drnn_hidden_states, rnn_cache)
+        dW_embed = word_embedding_backward(dword_vectors, word_vectors_cache)
+        _, dW_proj, db_proj = affine_backward(dh0, h0_cache)
+
+        # Save the gradients in grads dictionary 
+        grads = {
+            'W_proj': dW_proj,
+            'b_proj': db_proj,
+            'W_embed': dW_embed,
+            'Wx': dWx,
+            'Wh': dWh,
+            'b': db,
+            'W_vocab': dW_vocab,
+            'b_vocab': db_vocab,
+        }
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -213,10 +236,31 @@ class CaptioningRNN(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         
-        pass
+        # Initialize hidden state
+        prev_h, _ = affine_forward(features, W_proj, b_proj)
+        prev_c = np.zeros_like(prev_h)
 
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
-        return captions
+        # Start token
+        captions[:, 0] = self._start
+
+        for t in range(1, max_length):
+            # Embed the previous word
+            word_embed, _ = word_embedding_forward(captions[:, t - 1], W_embed)
+
+            # RNN step
+            next_h, _ = rnn_step_forward(word_embed, prev_h, Wx, Wh, b)
+
+            # Affine transformation
+            scores, _ = affine_forward(next_h, W_vocab, b_vocab)
+
+            # Select the word with the highest score
+            captions[:, t] = np.argmax(scores, axis=1)
+
+            # Update hidden state for the next iteration
+            prev_h = next_h
+
+            # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+            ############################################################################
+            #                             END OF YOUR CODE                             #
+            ############################################################################
+            return captions
