@@ -33,6 +33,8 @@ def sample_noise(batch_size, dim, seed=None):
     noise = torch.rand(batch_size, dim)
     # Scale and shift so the range becomes (-1, 1)
     noise = 2 * noise - 1
+    
+    return noise
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -130,7 +132,10 @@ def discriminator_loss(logits_real, logits_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    labels_real = torch.ones(logits_real.shape).type(dtype)
+    labels_fake = torch.zeros(logits_fake.shape).type(dtype)
+
+    loss = bce_loss(logits_real, labels_real.squeeze()) + bce_loss(logits_fake, labels_fake.squeeze())
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -148,7 +153,8 @@ def generator_loss(logits_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    labels_fake = torch.ones(logits_fake.shape).type(dtype)
+    loss = bce_loss(logits_fake, labels_fake.squeeze())
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -167,7 +173,7 @@ def get_optimizer(model):
     optimizer = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.5, 0.999))
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return optimizer
@@ -186,7 +192,12 @@ def ls_discriminator_loss(scores_real, scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    true_labels = torch.ones(scores_real.size()).type(dtype)
+
+    fake_image_loss = (torch.mean((scores_real - true_labels)**2))
+    real_image_loss = (torch.mean((scores_fake)**2))
+
+    loss = 0.5 * fake_image_loss + 0.5 * real_image_loss
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -204,7 +215,8 @@ def ls_generator_loss(scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    true_labels = torch.ones(scores_fake.size()).type(dtype)
+    loss = 0.5 * ((torch.mean((scores_fake - true_labels)**2)))
     
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -222,7 +234,21 @@ def build_dc_classifier(batch_size):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = nn.Sequential(
+        Unflatten(batch_size, 1, 28, 28),
+        nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1),
+        nn.LeakyReLU(inplace=True, negative_slope=0.01),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=1),
+        nn.LeakyReLU(inplace=True, negative_slope=0.01),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        Flatten(),
+        nn.Linear(4*4*64, 4*4*64),
+        nn.LeakyReLU(inplace=True, negative_slope=0.01),
+        nn.Linear(4*4*64, 1),
+    )
+
+    return model
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -243,7 +269,23 @@ def build_dc_generator(noise_dim=NOISE_DIM):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model= nn.Sequential(
+        nn.Linear(noise_dim, 1024),
+        nn.ReLU(inplace=True),
+        nn.BatchNorm1d(num_features=1024),
+        nn.Linear(1024, 7*7*128),
+        nn.ReLU(inplace=True),
+        nn.BatchNorm1d(num_features=7*7*128),
+        Unflatten(128, 128, 7, 7),
+        nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1),
+        nn.ReLU(inplace=True),
+        nn.BatchNorm2d(num_features=64),
+        nn.ConvTranspose2d(in_channels=64, out_channels=1, kernel_size=4, stride=2, padding=1),
+        nn.Tanh(),
+        Flatten(),
+    )
+
+    return model
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
